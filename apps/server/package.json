@@ -4,14 +4,20 @@
   "type": "module",
   "private": true,
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/nodemailer": "^8.0.1"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
+    "cors": "^2.8.6",
+    "crypto": "^1.0.1",
+    "db": "*",
     "express": "^5.2.1",
-    "db": "*"
+    "nodemailer": "^9.0.5",
+    "zod": "^4.4.3"
   }
 }

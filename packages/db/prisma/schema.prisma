@@ -12,9 +12,135 @@ datasource db {
   provider = "postgresql"
 }
 
+// Enums
+enum Role {
+  MEMBER
+  ADMIN
+}
+
 model User {
   id                String        @id @default(uuid())
-  email             String
-  name              String
+  email             String        @unique
+  name              String?
   isVerifed         Boolean       @default(false)
+
+  membership        Membership[]
+  issues            IssueMapping[]
+  verifcationTokens VerificationToken[]
+  sessions          Session[]
+
+  createdAt         DateTime  @default(now())
 }
+
+model Organisation {
+  id                String        @id @default(uuid())
+  title             String
+  description       String
+
+  membership        Membership[]
+  boards            Board[]
+}
+
+model Board {
+  id                String        @id @default(uuid())
+  title             String
+
+  orgId             String
+
+
+  organisation     Organisation   @relation(fields: [orgId], references: [id])
+
+  issues            Issue[]
+  sections          Section[]
+}
+
+model Issue {
+  id                String        @id @default(uuid())
+  title             String
+  descripiton       String
+
+  boardId           String
+  sectionId         String
+
+  boards            Board         @relation(fields: [boardId], references: [id])
+  sections          Section       @relation(fields: [sectionId], references: [id])
+
+  users             IssueMapping[]
+  comments          Comment[]
+}
+
+model Section {
+  id                String        @id @default(ulid())
+  title             String
+  
+  boardId           String
+
+  board             Board         @relation(fields: [boardId], references: [id])
+
+
+  issues            Issue[]             
+}
+
+model Comment {
+  id                String      @id @default(uuid())
+  title             String
+  description       String
+
+  issueId         String
+
+  issue           Issue       @relation(fields: [issueId], references: [id])
+}
+
+
+model VerificationToken {
+  id            String      @id @default(uuid())
+  tokenHash     String      @unique
+
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+
+
+  expiresIn     DateTime
+  createdAt     DateTime  @default(now())
+}
+
+model Session {
+  id            String    @id @default(uuid())
+  tokenHash     String    @unique
+
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  expiresAt     DateTime
+  createdAt     DateTime @default(now())
+}
+
+
+// Join Tables
+model Membership {
+  id                String        @id @default(uuid())
+  role               Role         @default(MEMBER)
+
+  userId            String
+  orgId             String
+
+
+  user              User          @relation(fields: [userId], references: [id])
+  organisation      Organisation  @relation(fields: [orgId], references: [id])
+}
+
+
+model IssueMapping {
+  id                String        @id @default(uuid())
+
+  userId            String
+  issueId           String
+
+  user              User         @relation(fields: [userId], references: [id])
+  issue             Issue        @relation(fields: [issueId], references: [id])
+}
+
+
+
+
+

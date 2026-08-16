@@ -1,7 +1,7 @@
 import { prisma } from "db";
 import crypto from "crypto";
 import { Router, type Request, type Response } from "express";
-import { UserRegisterSchema } from "../types/auth.types";
+import { UserRegisterSchema } from "../types";
 import { sendMagicLink } from "../services/email";
 
 
@@ -30,46 +30,51 @@ router.post("/register", async (req: Request, res: Response) => {
         })
 
 
-        // Create user if they don't exist
+        // Create user if they don't exist and add an entry in the membership table
         if (!user) {
             user = await prisma.user.create({
                 data: {
-                    email
+                    email,
+                    role: "MEMBER"
                 },
             });
+
+
+            // Generate random token
+            const token = crypto.randomBytes(32).toString("hex")
+
+            // Hash token
+            const tokenHash = crypto
+                .createHash("sha256")
+                .update(token)
+                .digest("hex")
+
+            // Expires in 15 minutes
+            const expiresIn = new Date(
+                Date.now() + 15 * 60 * 1000
+            )
+
+
+            // Store hashed token
+            await prisma.verificationToken.create({
+                data: {
+                    tokenHash,
+                    userId: user.id,
+                    expiresIn
+                }
+            })
+
+            // Send email
+            await sendMagicLink(email, token)
+
+            return res.status(200).json({
+                message: "Magic link sent",
+            });
+        } else {
+            return res.status(422).json({
+                message: "User already exists!!!!"
+            })
         }
-
-
-        // Generate random token
-        const token = crypto.randomBytes(32).toString("hex")
-
-        // Hash token
-        const tokenHash = crypto
-            .createHash("sha256")
-            .update(token)
-            .digest("hex")
-
-        // Expires in 15 minutes
-        const expiresIn = new Date(
-            Date.now() + 15 * 60 * 1000
-        )
-
-
-        // Store hashed token
-        await prisma.verificationToken.create({
-            data: {
-                tokenHash,
-                userId: user.id,
-                expiresIn
-            }
-        })
-
-        // Send email
-        await sendMagicLink(email, token)
-
-        return res.status(200).json({
-            message: "Magic link sent",
-        });
     } catch (error) {
         console.log("Error: ", error)
         return res.status(500).json({
@@ -146,21 +151,21 @@ router.get("/verify", async (req: Request, res: Response) => {
         // Create session
         const sessionToken = crypto.randomBytes(32).toString("hex")
 
-        const sessionTokenHash = 
-        crypto
-            .createHash("sha256")
-            .update(sessionToken)
-            .digest("hex")
+        const sessionTokenHash =
+            crypto
+                .createHash("sha256")
+                .update(sessionToken)
+                .digest("hex")
 
-            await prisma.session.create({
-                data: {
-                    tokenHash: sessionTokenHash,
-                    userId: user.id,
-                    expiresAt: new Date(
-                        Date.now() + 7 * 24 * 60 * 60 * 1000
-                    ),
-                }
-            })
+        await prisma.session.create({
+            data: {
+                tokenHash: sessionTokenHash,
+                userId: user.id,
+                expiresAt: new Date(
+                    Date.now() + 7 * 24 * 60 * 60 * 1000
+                ),
+            }
+        })
 
         // Set cookie
         res.cookie("session", sessionToken, {
@@ -181,10 +186,10 @@ router.get("/verify", async (req: Request, res: Response) => {
 
     } catch (error) {
         return res.status(500).json({
-            message: "Something went wrong!!!"
+            message: "Something went wrong!!!",
+            error,
         })
     }
 })
-
 
 export default router

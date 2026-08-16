@@ -23,6 +23,7 @@ model User {
   email             String        @unique
   name              String?
   isVerifed         Boolean       @default(false)
+  role              Role           @default(MEMBER)
 
   membership        Membership[]
   issues            IssueMapping[]
@@ -34,7 +35,7 @@ model User {
 
 model Organisation {
   id                String        @id @default(uuid())
-  title             String
+  title             String        @unique
   description       String
 
   membership        Membership[]
@@ -119,7 +120,6 @@ model Session {
 // Join Tables
 model Membership {
   id                String        @id @default(uuid())
-  role               Role         @default(MEMBER)
 
   userId            String
   orgId             String

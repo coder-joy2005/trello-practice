@@ -203,6 +203,13 @@ router.delete("/delete/:id", async (req: Request, res: Response) => {
             message: "Unauthorized!!! Cannot delete this organisation!!"
         })
 
+        // Delete the memberships first
+        await prisma.membership.deleteMany({
+            where: {
+                orgId
+            }
+        })
+        
         const deletedOrganisation = await prisma.organisation.delete({
             where: {
                 id: orgId
@@ -216,7 +223,8 @@ router.delete("/delete/:id", async (req: Request, res: Response) => {
 
     } catch (error) {
         return res.status(500).json({
-            message: "Internal Server Error!!!"
+            message: "Internal Server Error!!!",
+            error
         })
     }
 })
